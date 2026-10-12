@@ -3,7 +3,8 @@
 import mimetypes
 import os
 from pathlib import Path
-from typing import IO, Any, Dict, Optional, Union
+from typing import IO, Any, Dict, List, Optional, Union
+from urllib.parse import quote
 
 import requests
 
@@ -116,6 +117,26 @@ class ParserBee:
             data={"template_id": template_id},
             files={"file": (name, handle, content_type)},
         )
+
+    def list_templates(self) -> List[Dict[str, Any]]:
+        """Return every Parser Template in the account, newest first."""
+        return self._request("GET", "/api/v1/templates").get("items", [])
+
+    def get_template(self, template_id: str) -> Dict[str, Any]:
+        """Return one Parser Template, with its fields."""
+        return self._request("GET", f"/api/v1/templates/{quote(template_id, safe='')}")
+
+    def get_credits(self) -> Dict[str, Any]:
+        """Return the page credit balance and the subscription plan."""
+        return self._request("GET", "/api/v1/credits")
+
+    def list_activity(self) -> List[Dict[str, Any]]:
+        """Return the last 10 extraction requests, newest first."""
+        return self._request("GET", "/api/v1/activity").get("items", [])
+
+    def get_activity(self, request_id: str) -> Dict[str, Any]:
+        """Return one extraction request, including the extracted data."""
+        return self._request("GET", f"/api/v1/activity/{quote(request_id, safe='')}")
 
     def close(self) -> None:
         """Close the underlying HTTP session."""
