@@ -1,7 +1,9 @@
 """HTTP client for the ParserBee API."""
 
+import mimetypes
 import os
-from typing import Any, Dict, Optional
+from pathlib import Path
+from typing import IO, Any, Dict, Optional, Union
 
 import requests
 
@@ -10,6 +12,8 @@ from .errors import APIConnectionError, APIError, error_for_status
 
 DEFAULT_BASE_URL = "https://app.parserbee.com"
 DEFAULT_TIMEOUT = 120.0
+
+FileInput = Union[str, os.PathLike, IO[bytes]]
 
 
 class ParserBee:
@@ -66,6 +70,52 @@ class ParserBee:
                 status=response.status_code,
             )
         return body
+
+    def extract(
+        self,
+        template_id: str,
+        file: Optional[FileInput] = None,
+        *,
+        file_url: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Extract structured data from a document with a Parser Template.
+
+        Pass either ``file`` (a path or an open binary file) or ``file_url``
+        (a public link to the document). Each extraction costs 1 page credit
+        per page processed.
+
+        Returns the full API response. The extracted fields are in
+        ``result["data"]``; ``result["usage"]`` holds the page count and the
+        page credits charged.
+        """
+        if not template_id:
+            raise ValueError("template_id is required")
+        if (file is None) == (file_url is None):
+            raise ValueError("Pass exactly one of file or file_url")
+
+        if file_url is not None:
+            return self._request(
+                "POST",
+                "/api/v1/extract",
+                json={"template_id": template_id, "file_url": file_url},
+            )
+
+        if isinstance(file, (str, os.PathLike)):
+            path = Path(file)
+            with path.open("rb") as handle:
+                return self._upload(template_id, handle, path.name)
+
+        name = Path(getattr(file, "name", "document")).name
+        return self._upload(template_id, file, name)
+
+    def _upload(self, template_id: str, handle: IO[bytes], name: str) -> Dict[str, Any]:
+        content_type = mimetypes.guess_type(name)[0] or "application/octet-stream"
+        return self._request(
+            "POST",
+            "/api/v1/extract",
+            data={"template_id": template_id},
+            files={"file": (name, handle, content_type)},
+        )
 
     def close(self) -> None:
         """Close the underlying HTTP session."""
