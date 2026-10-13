@@ -5,7 +5,7 @@ Python client for the [ParserBee](https://parserbee.com) API. Send a PDF, scan o
 ## Install
 
 ```bash
-pip install git+https://github.com/ParserBee/parserbee-python.git
+pip install parserbee
 ```
 
 Requires Python 3.9 or later.
@@ -94,7 +94,7 @@ except InsufficientCreditsError:
 
 ## Examples
 
-The [examples](examples) folder has scripts you can run as they are:
+The [examples](https://github.com/ParserBee/parserbee-python/tree/main/examples) folder has scripts you can run as they are:
 
 - `extract_invoice.py`: one file, printed as JSON
 - `extract_from_url.py`: a document that is already online
